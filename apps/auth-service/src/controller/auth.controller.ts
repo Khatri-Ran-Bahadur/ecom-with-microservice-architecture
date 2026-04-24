@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import { validateRegistrationData, checkOtpRestrictions, trackOtpRequests, sendOtp, verifyOtp, handleForgotPassword, handleResetPassword } from "../utils/auth.helper";
+import { validateRegistrationData, checkOtpRestrictions, trackOtpRequests, sendOtp, verifyOtp, handleForgotPassword, verifyForgotPasswordOtp as verifyForgotPasswordOtpHelper } from "../utils/auth.helper";
 import { setTokenCookie } from "../utils/cookies/setCookie";
-import { ValidationError } from "@packages/error-handler";
+import { AuthError, ValidationError } from "@packages/error-handler";
 import prisma from "@packages/libs/prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -109,6 +109,37 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
     }
 }
 
+//refresj token user
+export const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) {
+            return new ValidationError("Unauthorized! No refresh token.")
+        }
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET as string) as { id: string; role: string };
+
+        if (!decoded || !decoded.id || !decoded.role) {
+            return new ValidationError("Unauthorized! Invalid token.");
+        }
+
+        const user = await prisma.users.findUnique({ where: { id: decoded.id } });
+
+        if (!user) {
+            return new AuthError("Forbidden! User/Seller not found");
+        }
+        const accessToken = jwt.sign({ id: user.id, role: decoded.role }, process.env.ACCESS_TOKEN_SECRET as string, { expiresIn: "15m" });
+        setTokenCookie(res, "accessToken", accessToken);
+        res.status(200).json({
+            success: true,
+            message: `${decoded.role} refreshed token successfully`,
+            accessToken
+        })
+    } catch (error) {
+        console.log(error);
+        return next(error);
+    }
+}
+
 //user forgot password
 export const userForgotPassword = async (req: Request, res: Response, next: NextFunction) => {
     await handleForgotPassword(req, res, next, 'user');
@@ -116,7 +147,7 @@ export const userForgotPassword = async (req: Request, res: Response, next: Next
 
 //Verify forgot password OTP
 export const verifyForgotPasswordOtp = async (req: Request, res: Response, next: NextFunction) => {
-    await verifyForgotPasswordOtp(req, res, next);
+    await verifyForgotPasswordOtpHelper(req, res, next);
 }
 
 //Reset User Password

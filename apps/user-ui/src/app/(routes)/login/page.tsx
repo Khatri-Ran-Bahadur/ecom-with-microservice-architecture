@@ -3,6 +3,8 @@ import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Eye, EyeOff } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import axios, { AxiosError } from 'axios'
 
 type FormData = {
     email: string
@@ -13,24 +15,26 @@ const Login = () => {
     const [passwordVisible, setPasswordVisible] = useState<boolean>(false)
     const [serverError, setServerError] = useState<string | null>(null)
     const [rememberMe, setRememberMe] = useState<boolean>(false)
-    const [isLoading, setIsLoading] = useState<boolean>(false)
 
     const router = useRouter()
     const { register, handleSubmit, formState: { errors } } = useForm<FormData>()
 
-    const onSubmit = async (data: FormData) => {
-        try {
-            setIsLoading(true)
-            setServerError(null)
-            // TODO: your auth logic here
-            console.log(data, { rememberMe })
-            // await signIn(data.email, data.password)
-            // router.push('/dashboard')
-        } catch (error) {
-            setServerError('Invalid email or password. Please try again.')
-        } finally {
-            setIsLoading(false)
+    const loginMutation = useMutation({
+        mutationFn: async (data: FormData) => {
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/login-user`, data, { withCredentials: true })
+            return res.data
+        },
+        onSuccess: () => {
+            setServerError(null);
+            router.push("/")
+        },
+        onError: (error: AxiosError) => {
+            setServerError((error.response?.data as { message?: string })?.message || "Invalid credential!")
         }
+    })
+
+    const onSubmit = async (data: FormData) => {
+        loginMutation.mutate(data);
     }
 
     return (
@@ -193,10 +197,10 @@ const Login = () => {
                     {/* Submit */}
                     <button
                         type="submit"
-                        disabled={isLoading}
+                        disabled={loginMutation.isPending}
                         className="w-full h-11 mt-2 rounded-xl bg-[#378ADD] hover:bg-[#185FA5] active:scale-[0.985] text-white text-sm font-medium tracking-wide transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                        {isLoading ? (
+                        {loginMutation.isPending ? (
                             <span className="flex items-center justify-center gap-2">
                                 <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none">
                                     <circle cx="12" cy="12" r="10" stroke="white" strokeOpacity="0.25" strokeWidth="3" />

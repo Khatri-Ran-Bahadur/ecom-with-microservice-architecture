@@ -62,6 +62,19 @@ const Signup = () => {
         }
     })
 
+    const verifyOtpMutation = useMutation({
+        mutationFn: async () => {
+            if (!userData) return;
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/verify-user`, { ...userData, otp: otp.join("") });
+            return response.data;
+        },
+        onSuccess: () => {
+            setShowOtp(false)
+            router.push("/login")
+            // toast.success("Otp Verified")
+        }
+    })
+
     const startResendTimer = () => {
         const resendTimer = setInterval(() => {
             setTimer((prev) => {
@@ -114,9 +127,9 @@ const Signup = () => {
     };
 
     const resendOtp = () => {
-        if (!canResend) return
-        // TODO: call your resend OTP API here
-        startCountdown()
+        if (userData) {
+            signupMutation.mutate(userData);
+        }
     }
 
     return (
@@ -336,10 +349,19 @@ const Signup = () => {
                         {/* Verify button */}
                         <button
                             type="button"
-                            disabled={otp.some(d => d === "")}
                             className="w-full h-11 rounded-xl bg-[#378ADD] hover:bg-[#185FA5] active:scale-[0.985] text-white text-sm font-medium tracking-wide transition-all disabled:opacity-40 disabled:cursor-not-allowed mb-6"
+                            disabled={otp.some(d => d === "") || verifyOtpMutation.isPending}
+                            onClick={() => verifyOtpMutation.mutate()}
                         >
-                            Verify &amp; continue
+                            {verifyOtpMutation.isPending ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="10" stroke="white" strokeOpacity="0.25" strokeWidth="3" />
+                                        <path d="M12 2a10 10 0 0110 10" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                                    </svg>
+                                    Verifying...
+                                </span>
+                            ) : "Verify continue"}
                         </button>
 
                         {/* Resend row */}
@@ -362,6 +384,12 @@ const Signup = () => {
                                 </div>
                             )}
                         </div>
+                        {/* error show */}
+                        {verifyOtpMutation?.isError && verifyOtpMutation.error instanceof AxiosError && (
+                            <div className="mb-5 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                                {verifyOtpMutation.error.response?.data?.message || verifyOtpMutation.error.message}
+                            </div>
+                        )}
 
                         {/* Back link */}
                         <button
