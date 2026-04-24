@@ -1,9 +1,9 @@
 import crypto from "crypto";
-import { NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import { ValidationError } from "@packages/error-handler";
 import redis from "@packages/libs/redis";
 import { sendEmail } from "./sendMail";
-import jwt from "jsonwebtoken";
+import prisma from "@packages/libs/prisma";
 
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -100,6 +100,49 @@ export const verifyOtp = async (email: string, otp: string, next: NextFunction) 
 }
 
 
-export const generateToken = (userId: string) => {
-    return jwt.sign({ id: userId }, process.env.JWT_SECRET as string, { expiresIn: "1d" });
+// handle forgot password
+export const handleForgotPassword = async (req: Request, res: Response, next: NextFunction, userType: "user" | "seller") => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            throw new ValidationError("Email is required");
+        }
+        const user = await prisma.users.findUnique({
+            where: { email }
+        });
+        if (!user) {
+            throw new ValidationError(`${userType} not found`);
+        }
+        await checkOtpRestrictions(email, next);
+        await trackOtpRequests(email, next);
+        await sendOtp(email, user.name, "forgot-password-user-mail");
+
+        res.status(200).json({
+            message: "OTP sent to email. Please verify your account."
+        })
+    } catch (error) {
+        console.log(error);
+        return next(error);
+    }
 }
+
+// verify forgot password otp
+export const verifyForgotPasswordOtp = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return next(new ValidationError("All fields are required"));
+        }
+        await verifyOtp(email, otp, next);
+        res.status(200).json({
+            success: true,
+            message: "OTP verified successfully",
+        })
+    } catch (error) {
+        console.log(error);
+        return next(error);
+    }
+}
+
+

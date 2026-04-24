@@ -35,7 +35,7 @@ const limiter = ratelimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later" },
-  keyGenerator : ipKeyGenerator,  
+  keyGenerator: ipKeyGenerator,
 });
 app.use(limiter);
 
@@ -43,10 +43,10 @@ app.get('/getway-health', (req, res) => {
   res.send({ message: 'Welcome to api-getway!' });
 });
 
-app.get('/', proxy("http://localhost:6001"));
+app.use('/', proxy("http://localhost:6001"));
 
 // Default to 8081 to avoid clashing with other local services.
-const port = process.env.PORT || 8081;
+const port = process.env.PORT || 8082;
 const server = app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/api`);
 });

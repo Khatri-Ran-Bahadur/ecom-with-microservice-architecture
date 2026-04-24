@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { validateRegistrationData, checkOtpRestrictions, trackOtpRequests, sendOtp, verifyOtp } from "../utils/auth.helper";
+import { validateRegistrationData, checkOtpRestrictions, trackOtpRequests, sendOtp, verifyOtp, handleForgotPassword, handleResetPassword } from "../utils/auth.helper";
 import { setTokenCookie } from "../utils/cookies/setCookie";
 import { ValidationError } from "@packages/error-handler";
 import prisma from "@packages/libs/prisma";
@@ -98,9 +98,62 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             success: true,
             message: "User logged in successfully",
             accessToken,
-            user
+            user: {
+                id: user.id, name: user.name, email: user.email
+            }
         })
 
+    } catch (error) {
+        console.log(error);
+        return next(error);
+    }
+}
+
+//user forgot password
+export const userForgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+    await handleForgotPassword(req, res, next, 'user');
+}
+
+//Verify forgot password OTP
+export const verifyForgotPasswordOtp = async (req: Request, res: Response, next: NextFunction) => {
+    await verifyForgotPasswordOtp(req, res, next);
+}
+
+//Reset User Password
+export const resetUserPassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, newPassword } = req.body;
+
+        if (!email || !newPassword) {
+            return next(new ValidationError("Email and new password are required"));
+        }
+
+        const user = await prisma.users.findUnique({
+            where: { email }
+        });
+
+        if (!user) {
+            return next(new ValidationError("User not found"));
+        }
+        //compare new password with old password if same then return error
+        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        if (isSamePassword) {
+            return next(new ValidationError("New password cannot be the same as the old password!"));
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await prisma.users.update({
+            where: { email },
+            data: {
+                password: hashedPassword
+            }
+        })
+
+        res.status(200).json({
+            success: true,
+            message: "Password reset successfully",
+        })
     } catch (error) {
         console.log(error);
         return next(error);
