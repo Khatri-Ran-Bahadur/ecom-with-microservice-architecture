@@ -1,9 +1,8 @@
 {
-  "name": "@eshop/auth-service",
+  "name": "@eshop/api-getway",
   "version": "0.0.1",
   "private": true,
   "nx": {
-    "name": "@eshop/auth-service",
     "targets": {
       "prune-lockfile": {
         "dependsOn": [
@@ -12,8 +11,8 @@
         "cache": true,
         "executor": "@nx/js:prune-lockfile",
         "outputs": [
-          "{workspaceRoot}/apps/auth-service/dist/package.json",
-          "{workspaceRoot}/apps/auth-service/dist/package-lock.json"
+          "{workspaceRoot}/apps/api-getway/dist/package.json",
+          "{workspaceRoot}/apps/api-getway/dist/package-lock.json"
         ],
         "options": {
           "buildTarget": "build"
@@ -25,7 +24,7 @@
         ],
         "cache": true,
         "outputs": [
-          "{workspaceRoot}/apps/auth-service/dist/workspace_modules"
+          "{workspaceRoot}/apps/api-getway/dist/workspace_modules"
         ],
         "executor": "@nx/js:copy-workspace-modules",
         "options": {
@@ -47,15 +46,15 @@
           "build"
         ],
         "options": {
-          "buildTarget": "@eshop/auth-service:build",
+          "buildTarget": "@eshop/api-getway:build",
           "runBuildTargetDependencies": false
         },
         "configurations": {
           "development": {
-            "buildTarget": "@eshop/auth-service:build:development"
+            "buildTarget": "@eshop/api-getway:build:development"
           },
           "production": {
-            "buildTarget": "@eshop/auth-service:build:production"
+            "buildTarget": "@eshop/api-getway:build:production"
           }
         }
       }

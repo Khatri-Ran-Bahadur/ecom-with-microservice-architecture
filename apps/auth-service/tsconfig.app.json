@@ -5,11 +5,16 @@
     "types": [
       "node"
     ],
-    "rootDir": "src",
-    "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo"
+    "rootDir": "../../",
+    "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo",
+    "resolveJsonModule": true
   },
   "include": [
-    "src/**/*.ts"
+    "src/*.json",
+    "src/**/*.ts",
+    "src/**/*.json",
+    "../../packages/**/*.ts",
+    "../../packages/**/*.js"
   ],
   "exclude": [
     "out-tsc",
