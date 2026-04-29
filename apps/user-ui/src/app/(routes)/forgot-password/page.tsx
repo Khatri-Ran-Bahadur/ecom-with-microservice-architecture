@@ -170,7 +170,6 @@ const ForgotPassword = () => {
             className="w-full min-h-screen bg-[#F5F4F0] flex items-center justify-center px-4 py-10"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
-            <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');`}</style>
 
             <div className="w-full max-w-[440px] bg-white rounded-2xl border border-black/[0.07] p-10 shadow-sm">
 

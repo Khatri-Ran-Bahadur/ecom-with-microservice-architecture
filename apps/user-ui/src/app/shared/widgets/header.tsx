@@ -1,10 +1,13 @@
+"use client"
 import Link from 'next/link'
 import React from 'react'
 import { Search, Heart, ShoppingCart } from 'lucide-react'
 import ProfileIcon from '../../../assets/svgs/profile-icon'
 import HeaderBottom from './header-bottom'
+import useUser from 'apps/user-ui/src/hooks/useUser';
 
 const Header = () => {
+    const { user, isLoading } = useUser();
     return (
         <div className='w-full bg-white'>
             <div className='w-[80%] py-5 m-auto flex items-center justify-between'>
@@ -19,14 +22,29 @@ const Header = () => {
                 </div>
                 <div className='flex items-center gap-8'>
                     <div className='flex items-center gap-2 cursor-pointer'>
-                        <Link href="/login" className="border-2 w-[50px] h-[50px] flex items-center justify-center rounded-full border-[#010f1c1a]">
-                            <ProfileIcon />
-                        </Link>
+                        {!isLoading && user ? (
+                            <>
+                                <Link href="/profile" className="border-2 w-[50px] h-[50px] flex items-center justify-center rounded-full border-[#010f1c1a]">
+                                    {user.name?.charAt(0).toUpperCase()}
+                                </Link>
+                                <Link href="/profile">
+                                    <span className='block font-medium text-gray-700 text-md'>Hello,</span>
+                                    <span className="font-semibold text-lg">{user.name?.split(' ')[0]}</span>
+                                </Link>
+                            </>
+                        ) : (<>
+                            <Link href="/login" className="border-2 w-[50px] h-[50px] flex items-center justify-center rounded-full border-[#010f1c1a]">
+                                <ProfileIcon />
+                            </Link>
+                            <Link href="/login">
+                                <span className='block font-medium text-gray-700 text-md'>Hello,</span>
+                                <span className="font-semibold text-lg">{isLoading ? "..." : "Sign in"}</span>
+                            </Link>
+                        </>
 
-                        <Link href="/login">
-                            <span className='block font-medium text-gray-700 text-md'>Hello,</span>
-                            <span className='font-semibold text-lg'>Sign in</span>
-                        </Link>
+                        )}
+
+
                     </div>
                     <div className='flex items-center gap-5'>
                         <Link href="/wishlist" className="relative">

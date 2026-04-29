@@ -35,7 +35,7 @@ app.use("/api", router);
 app.use(errorMiddleware);
 
 const server = app.listen(port, () => {
-    console.log(`[ ready ] http://${host}:${port}/api`);
+    console.log(`[ Auth Service ready ] http://${host}:${port}/api`);
     console.log(`[ docs ] http://${host}:${port}/api-docs`);
 });
 

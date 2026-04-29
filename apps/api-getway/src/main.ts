@@ -13,6 +13,7 @@ import { ipKeyGenerator } from "express-rate-limit";
 // import swaggerui from "swagger-ui-express"
 // import axios from "axios";
 import cookieParser from "cookie-parser";
+import initializeSiteConfig from "./libs/initalizeSiteConfig";
 
 
 const app = express();
@@ -43,11 +44,18 @@ app.get('/getway-health', (req, res) => {
   res.send({ message: 'Welcome to api-getway!' });
 });
 
+app.use('/products', proxy("http://localhost:6002"));
 app.use('/', proxy("http://localhost:6001"));
 
 // Default to 8081 to avoid clashing with other local services.
 const port = process.env.PORT || 8082;
 const server = app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/api`);
+  try {
+    initializeSiteConfig();
+    console.log("Site config initialized successfully");
+  } catch (error) {
+    console.error("Error initializing site config", error);
+  }
 });
 server.on('error', console.error);

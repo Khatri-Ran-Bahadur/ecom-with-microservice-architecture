@@ -40,4 +40,5 @@ module.exports = {
       sourceMap: true,
     })
   ],
+  ignoreWarnings: [/Failed to parse source map/],
 };

@@ -15,7 +15,17 @@ module.exports = {
       compiler: 'tsc',
       main: './src/main.ts',
       tsConfig: './tsconfig.app.json',
+      buildLibsFromSource: true,
       assets: ["./src/assets"],
+      externalDependencies: [
+        'express',
+        'cors',
+        'cookie-parser',
+        'dotenv',
+        'morgan',
+        'express-http-proxy',
+        'express-rate-limit'
+      ],
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: false,

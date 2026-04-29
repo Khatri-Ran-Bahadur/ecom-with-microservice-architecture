@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "nx run-many --target=serve --all --output-style=stream",
     "auth-docs": "node apps/auth-service/src/swagger.js",
-    "user-ui": "npx nx run-many --target=dev --all  --projects=user-ui"
+    "product-docs": "node apps/product-service/src/swagger.js",
+    "user-ui": "npx nx run-many --target=dev --all  --projects=user-ui",
+    "seller-ui": "npx nx run-many --target=dev --all  --projects=seller-ui"
   },
   "private": true,
   "dependencies": {
@@ -20,18 +22,24 @@
     "express": "^4.21.2",
     "express-http-proxy": "^2.1.2",
     "express-rate-limit": "^8.3.2",
+    "imagekit": "^6.0.0",
     "ioredis": "^5.10.1",
+    "jotai": "^2.19.1",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.9.0",
     "mongodb": "^7.2.0",
     "morgan": "^1.10.1",
     "next": "~16.1.6",
+    "node-cron": "^4.2.1",
     "nodemailer": "^8.0.5",
     "prisma": "^6.19.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.73.1",
     "react-hot-toast": "^2.6.0",
+    "react-quill-new": "^3.8.3",
+    "recharts": "^3.8.1",
+    "stripe": "^22.1.0",
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1",
     "tsconfig-paths": "^4.2.0"

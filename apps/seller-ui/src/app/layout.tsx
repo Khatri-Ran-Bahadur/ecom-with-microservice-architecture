@@ -1,0 +1,31 @@
+import './global.css';
+import Providers from './providers';
+import { Poppins } from 'next/font/google'
+
+export const metadata = {
+  title: 'Eshop Seller',
+  description: 'Sell your products on Eshop',
+}
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-poppins',
+  display: 'swap'
+})
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className={`min-h-screen bg-slate-900 font-sans antialiased ${poppins.className}`}>
+        <Providers>
+          {children}
+        </Providers>
+      </body>
+    </html>
+  )
+}

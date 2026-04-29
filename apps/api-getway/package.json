@@ -47,7 +47,8 @@
         ],
         "options": {
           "buildTarget": "@eshop/api-getway:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "port": 9231
         },
         "configurations": {
           "development": {
