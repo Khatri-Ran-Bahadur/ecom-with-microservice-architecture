@@ -9,7 +9,7 @@ import Image from 'next/image'
 import {
     Spinner,
 } from 'apps/seller-ui/src/app/shared/confirmation'
-import { ConfirmModal } from 'packages/compoenents/ConfirmModal'
+import { ConfirmModal } from 'packages/components/ConfirmModal'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,8 +95,8 @@ const ProductsPage = () => {
                     </h1>
                     <p className="text-sm text-[#888] mt-1">Manage your product catalog and inventory</p>
                 </div>
-                <button 
-                    type="button" 
+                <button
+                    type="button"
                     onClick={() => router.push('/seller/products/create')}
                     className="flex items-center gap-2 h-11 px-5 rounded-xl bg-violet-600 hover:bg-violet-700 active:scale-[0.985] text-white text-sm font-medium tracking-wide transition-all shadow-lg shadow-violet-100"
                 >
@@ -109,15 +109,15 @@ const ProductsPage = () => {
             <div className="flex items-center gap-4 mb-6">
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#aaa]" size={16} />
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         placeholder="Search products..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         className="w-full h-11 pl-11 pr-4 bg-white border border-black/[0.07] rounded-xl text-sm outline-none focus:border-violet-300 transition-all shadow-sm"
                     />
                 </div>
-                <select 
+                <select
                     value={statusFilter}
                     onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                     className="h-11 px-4 bg-white border border-black/[0.07] rounded-xl text-sm outline-none focus:border-violet-300 transition-all shadow-sm"
@@ -169,10 +169,10 @@ const ProductsPage = () => {
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-12 h-12 rounded-lg bg-slate-100 relative overflow-hidden flex-shrink-0 border border-black/[0.05]">
                                                         {product.images?.[0]?.url ? (
-                                                            <Image 
-                                                                src={product.images[0].url} 
-                                                                alt={product.title} 
-                                                                fill 
+                                                            <Image
+                                                                src={product.images[0].url}
+                                                                alt={product.title}
+                                                                fill
                                                                 className="object-cover"
                                                             />
                                                         ) : (
@@ -208,21 +208,21 @@ const ProductsPage = () => {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <button 
+                                                    <button
                                                         onClick={() => router.push(`/seller/products/${product.id}`)}
                                                         className="p-2 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
                                                         title="View Details"
                                                     >
                                                         <Eye size={16} />
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => router.push(`/seller/products/edit/${product.id}`)}
                                                         className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
                                                         title="Edit"
                                                     >
                                                         <Pencil size={16} />
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => openDelete(product)}
                                                         className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
                                                         title="Delete"
@@ -243,7 +243,7 @@ const ProductsPage = () => {
                                 Showing <span className="font-medium text-[#777]">{(page - 1) * 10 + 1}</span> to <span className="font-medium text-[#777]">{Math.min(page * 10, pagination.total)}</span> of <span className="font-medium text-[#777]">{pagination.total}</span> products
                             </p>
                             <div className="flex items-center gap-2">
-                                <button 
+                                <button
                                     disabled={page === 1}
                                     onClick={() => setPage(p => p - 1)}
                                     className="p-2 rounded-lg border border-black/[0.07] text-[#777] disabled:opacity-30 hover:bg-[#FAFAFA] transition-all"
@@ -251,7 +251,7 @@ const ProductsPage = () => {
                                     <ChevronLeft size={16} />
                                 </button>
                                 <span className="text-xs font-bold text-slate-700 w-8 text-center">{page}</span>
-                                <button 
+                                <button
                                     disabled={page >= pagination.totalPages}
                                     onClick={() => setPage(p => p + 1)}
                                     className="p-2 rounded-lg border border-black/[0.07] text-[#777] disabled:opacity-30 hover:bg-[#FAFAFA] transition-all"
@@ -264,7 +264,7 @@ const ProductsPage = () => {
                 )}
             </div>
 
-            <ConfirmModal 
+            <ConfirmModal
                 open={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
                 onConfirm={handleDelete}

@@ -233,7 +233,7 @@ export const countries = [
     { code: "UM", name: "United States Minor Outlying Islands" },
     { code: "UY", name: "Uruguay" },
     { code: "UZ", name: "Uzbekistan" },
-    { code: "VU", name: "Vanuatu" },a
+    { code: "VU", name: "Vanuatu" },
     { code: "VE", name: "Venezuela" },
     { code: "VN", name: "Vietnam" },
     { code: "VG", name: "Virgin Islands, British" },

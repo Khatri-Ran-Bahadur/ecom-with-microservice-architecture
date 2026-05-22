@@ -4,13 +4,7 @@
   "files": [],
   "references": [
     {
-      "path": "./apps/auth-service-e2e"
-    },
-    {
       "path": "./apps/auth-service"
-    },
-    {
-      "path": "./apps/api-getway-e2e"
     },
     {
       "path": "./apps/api-getway"
@@ -23,6 +17,18 @@
     },
     {
       "path": "./apps/product-service"
+    },
+    {
+      "path": "./apps/kafka-service"
+    },
+    {
+      "path": "./apps/order-service"
+    },
+    {
+      "path": "./apps/admin-service"
+    },
+    {
+      "path": "./apps/admin-ui"
     }
   ]
 }

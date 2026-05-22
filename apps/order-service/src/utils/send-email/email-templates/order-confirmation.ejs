@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eshop – Order Confirmation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', Arial, sans-serif;
+            background-color: #F5F0E8;
+            color: #1A1410;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.6;
+        }
+
+        .wrapper {
+            width: 100%;
+            background-color: #F5F0E8;
+            padding: 48px 16px;
+        }
+
+        .card {
+            max-width: 560px;
+            margin: 0 auto;
+            background-color: #FFFDF9;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #E8E0D0;
+            box-shadow: 0 4px 32px rgba(26, 20, 16, 0.08);
+        }
+
+        /* Header */
+        .header {
+            background-color: #1A1410;
+            padding: 36px 48px 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(212, 167, 106, 0.18) 0%, transparent 70%);
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 28px;
+            letter-spacing: 0.12em;
+            color: #F5F0E8;
+            text-transform: uppercase;
+            position: relative;
+        }
+
+        .logo span {
+            color: #D4A76A;
+        }
+
+        .tagline {
+            font-size: 11px;
+            font-weight: 300;
+            letter-spacing: 0.22em;
+            color: rgba(245, 240, 232, 0.45);
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Body Content */
+        .body {
+            padding: 48px 48px 40px;
+        }
+
+        .greeting {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 26px;
+            color: #1A1410;
+            line-height: 1.2;
+            margin-bottom: 12px;
+        }
+
+        .greeting em {
+            font-style: italic;
+            color: #8B6340;
+        }
+
+        .intro {
+            font-size: 15px;
+            font-weight: 300;
+            color: #5A4A3A;
+            margin-bottom: 32px;
+        }
+
+        /* Order ID Section */
+        .order-id-section {
+            background-color: #F5F0E8;
+            border: 1px solid #E8E0D0;
+            border-radius: 4px;
+            padding: 24px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .order-id-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            color: #8B6340;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .order-id-number {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 20px;
+            color: #1A1410;
+            letter-spacing: 0.05em;
+        }
+
+        /* Cart Summary Table */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        .summary-header {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #8B6340;
+            border-bottom: 1px solid #E8E0D0;
+            padding-bottom: 12px;
+            text-align: left;
+        }
+
+        .item-row td {
+            padding: 16px 0;
+            border-bottom: 1px solid #F5F0E8;
+            vertical-align: middle;
+        }
+
+        .item-info {
+            font-size: 14px;
+            color: #1A1410;
+            font-weight: 500;
+        }
+
+        .item-meta {
+            font-size: 12px;
+            color: #8B7060;
+            margin-top: 4px;
+        }
+
+        .item-price {
+            font-size: 14px;
+            color: #1A1410;
+            text-align: right;
+        }
+
+        /* Total Section */
+        .total-container {
+            text-align: right;
+            padding: 24px 0;
+            margin-bottom: 32px;
+        }
+
+        .total-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #8B7060;
+        }
+
+        .total-amount {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 28px;
+            color: #C0622B;
+            margin-top: 4px;
+        }
+
+        /* Button */
+        .cta-button {
+            display: block;
+            background-color: #1A1410;
+            color: #F5F0E8 !important;
+            text-decoration: none;
+            text-align: center;
+            padding: 18px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        /* Footer */
+        .footer-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #E8E0D0, transparent);
+            margin: 0 48px;
+        }
+
+        .footer {
+            padding: 32px 48px;
+        }
+
+        .sign-off {
+            font-size: 14px;
+            font-weight: 300;
+            color: #7A6A5A;
+        }
+
+        .sign-name {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 16px;
+            color: #1A1410;
+            margin-top: 4px;
+        }
+
+        .bottom-bar {
+            background-color: #1A1410;
+            padding: 20px 48px;
+            text-align: center;
+        }
+
+        .bottom-bar p {
+            font-size: 10px;
+            letter-spacing: 0.05em;
+            color: rgba(245, 240, 232, 0.3);
+        }
+
+        @media (max-width: 600px) {
+
+            .header,
+            .body,
+            .footer {
+                padding: 32px 24px;
+            }
+
+            .order-id-number {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="card">
+
+            <!-- Header -->
+            <div class="header">
+                <div class="logo">E<span>·</span>shop</div>
+                <div class="tagline">Curated Commerce</div>
+            </div>
+
+            <!-- Body -->
+            <div class="body">
+                <div class="greeting">Welcome,&nbsp;<em>
+                        <%= name %>
+                    </em></div>
+                <p class="intro">
+                    Your order has been successfully placed and is now being prepared with care.
+                </p>
+
+                <!-- Order ID -->
+                <div class="order-id-section">
+                    <div class="order-id-label">Order Reference</div>
+                    <div class="order-id-number">#<%= orderId %>
+                    </div>
+                </div>
+
+                <!-- Cart Summary Table -->
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th class="summary-header">Items</th>
+                            <th class="summary-header" style="text-align: right;">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% cart.forEach(item=> { %>
+                            <tr class="item-row">
+                                <td>
+                                    <div class="item-info">
+                                        <%= item.title %>
+                                    </div>
+                                    <div class="item-meta">Quantity: <%= item.quantity %> &nbsp;·&nbsp; Rs. <%=
+                                                Number(item.sale_price).toLocaleString() %>
+                                    </div>
+                                </td>
+                                <td class="item-price">
+                                    Rs. <%= (Number(item.sale_price) * item.quantity).toLocaleString(undefined,
+                                        {minimumFractionDigits: 2}) %>
+                                </td>
+                            </tr>
+                            <% }) %>
+                    </tbody>
+                </table>
+
+                <!-- Grand Total -->
+                <div class="total-container">
+                    <div class="total-label">Amount Payable</div>
+                    <div class="total-amount">Rs. <%= Number(totalAmount).toLocaleString(undefined,
+                            {minimumFractionDigits: 2}) %>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <a href="<%= trackingUrl %>" class="cta-button">Track Your Order</a>
+            </div>
+
+            <div class="footer-divider"></div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <p class="sign-off">With warmth,</p>
+                <p class="sign-name">The Eshop Team</p>
+            </div>
+
+            <!-- Bottom bar -->
+            <div class="bottom-bar">
+                <p>&copy; 2026 Eshop &nbsp;·&nbsp; All rights reserved &nbsp;·&nbsp; You're receiving this because
+                    you've made a purchase with us.</p>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>

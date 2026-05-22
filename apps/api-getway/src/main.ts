@@ -18,14 +18,27 @@ import initializeSiteConfig from "./libs/initalizeSiteConfig";
 
 const app = express();
 app.use(cors({
-  origin: ["http://localhost:3000"],
+  origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
 app.use(morgan("dev"));
-app.use(express.json({ limit: "100mb" }));
-app.use(express.urlencoded({ extended: true, limit: "100mb" }));
+app.use((req, res, next) => {
+  if (req.originalUrl.includes("/api/create-order")) {
+    next();
+  } else {
+    express.json({ limit: "100mb" })(req, res, next);
+  }
+});
+
+app.use((req, res, next) => {
+  if (req.originalUrl.includes("/api/create-order")) {
+    next();
+  } else {
+    express.urlencoded({ extended: true, limit: "100mb" })(req, res, next);
+  }
+});
 app.use(cookieParser());
 
 app.set("trust proxy", 1);
@@ -44,8 +57,10 @@ app.get('/getway-health', (req, res) => {
   res.send({ message: 'Welcome to api-getway!' });
 });
 
+app.use('/admin', proxy("http://localhost:6004"));
+app.use('/order', proxy("http://localhost:6003"));
 app.use('/products', proxy("http://localhost:6002"));
-app.use('/', proxy("http://localhost:6001"));
+app.use('/auth', proxy("http://localhost:6001"));
 
 // Default to 8081 to avoid clashing with other local services.
 const port = process.env.PORT || 8082;

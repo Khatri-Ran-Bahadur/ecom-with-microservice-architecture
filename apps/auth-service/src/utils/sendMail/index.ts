@@ -33,7 +33,6 @@ export const sendEmail = async (to: string, subject: string, templateName: strin
             subject,
             html,
         });
-        console.log("Email sent successfully to:", to);
         return true;
     } catch (error) {
         console.error("Detailed error sending email:", error);

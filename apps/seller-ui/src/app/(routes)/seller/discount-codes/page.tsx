@@ -10,7 +10,7 @@ import {
     StatusBadge,
 } from 'apps/seller-ui/src/app/shared/confirmation'
 import DiscountModal from './_components/DiscountModal'
-import { ConfirmModal } from 'packages/compoenents/ConfirmModal'
+import { ConfirmModal } from 'packages/components/ConfirmModal'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -6,22 +6,22 @@ import { useParams, useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { ChevronRight, AlertCircle, Package, Save, X } from "lucide-react";
 import ImagePlaceholder from "../../../../../shared/components/image-placeholder";
-import Input from "packages/compoenents/input";
-import ColorSelector from "packages/compoenents/color-selector";
-import CustomSpecifications from "packages/compoenents/custom-specifications";
-import CustomProperties from "packages/compoenents/custom-properties";
+import Input from "packages/components/input";
+import ColorSelector from "packages/components/color-selector";
+import CustomSpecifications from "packages/components/custom-specifications";
+import CustomProperties from "packages/components/custom-properties";
 import axiosInstance from "apps/seller-ui/src/utils/axiosInstance";
+import SizeSelector from "packages/components/size-selector";
 import dynamic from "next/dynamic";
-const RichTextEditor = dynamic(() => import("packages/compoenents/rich-text-editor"), { ssr: false });
-import SizeSelector from "packages/compoenents/size-selector";
-import Image from "next/image";
+const RichTextEditor = dynamic(() => import("packages/components/rich-text-editor"), { ssr: false });
+import CategoryCascadeSelector from "../../../../../shared/components/CategoryCascadeSelector";
 import { enhancement } from "apps/seller-ui/src/utils/AI.enhancements";
 import { Spinner } from "apps/seller-ui/src/app/shared/confirmation";
 
 // Reuse the same UI components as Create
 const Section = ({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode; }) => (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+    <div className="bg-white rounded-2xl border border-slate-200">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60 rounded-t-2xl">
             <h3 className="font-semibold text-slate-800 text-sm">{title}</h3>
             {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
         </div>
@@ -86,12 +86,12 @@ const EditProductPage = () => {
                 custom_properties: product.custom_properties || [],
                 custom_specifications: product.custom_specifications || [],
             });
-            
+
             const prodImages = (product.images || []).map((img: any) => ({
                 fieldId: img.fileId,
                 file_url: img.url
             }));
-            
+
             if (prodImages.length < 8) {
                 setImages([...prodImages, null]);
             } else {
@@ -210,9 +210,9 @@ const EditProductPage = () => {
                         <p className="text-sm text-slate-500 font-medium mt-1">Update your product details and availability.</p>
                     </div>
                     <div className="flex items-center gap-3 w-full md:w-auto">
-                        <button type="submit" disabled={updateMutation.isPending} className="flex-1 md:flex-none flex items-center justify-center gap-2.5 h-12 px-8 rounded-2xl bg-violet-600 text-white text-sm font-black hover:bg-violet-700 transition-all shadow-xl shadow-violet-200 active:scale-[0.98]">
-                            {updateMutation.isPending ? <Spinner size="sm" color="white" /> : <Save size={16} />}
-                            Update Product
+                        <button type="submit" disabled={updateMutation.isPending || pictureUploadingLoader} className="flex-1 md:flex-none flex items-center justify-center gap-2.5 h-12 px-8 rounded-2xl bg-violet-600 text-white text-sm font-black hover:bg-violet-700 transition-all shadow-xl shadow-violet-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                            {updateMutation.isPending || pictureUploadingLoader ? <Spinner size="sm" color="white" /> : <Save size={16} />}
+                            {pictureUploadingLoader ? "Uploading..." : "Update Product"}
                         </button>
                     </div>
                 </div>
@@ -244,24 +244,25 @@ const EditProductPage = () => {
                         </Section>
 
                         <Section title="Classification">
-                            <div className="grid grid-cols-2 gap-6">
-                                <Field error={errors.category?.message as string}>
-                                    <Controller name="category" control={control} rules={{ required: "Required" }} render={({ field }) => (
-                                        <SelectField label="Category *" {...field}>
-                                            <option value="">Select Main Category</option>
-                                            {categories.map((item: any) => <option key={item} value={item}>{item}</option>)}
-                                        </SelectField>
-                                    )} />
-                                </Field>
-                                <Field error={errors.subCategory?.message as string}>
-                                    <Controller name="subCategory" control={control} rules={{ required: "Required" }} render={({ field }) => (
-                                        <SelectField label="Sub Category *" {...field}>
-                                            <option value="">Select Sub Category</option>
-                                            {subcategories.map((item: any) => <option key={item} value={item}>{item}</option>)}
-                                        </SelectField>
-                                    )} />
-                                </Field>
-                            </div>
+                            <Field error={errors.categoryId?.message as string}>
+                                <Controller
+                                    name="categoryId"
+                                    control={control}
+                                    rules={{ required: "Category is required" }}
+                                    render={({ field }) => (
+                                        <CategoryCascadeSelector
+                                            value={field.value || null}
+                                            tree={categoriesData?.tree || []}
+                                            error={errors.categoryId?.message as string}
+                                            onChange={(id, resolvedCat, resolvedSub) => {
+                                                field.onChange(id);
+                                                setValue("category", resolvedCat, { shouldDirty: true });
+                                                setValue("subCategory", resolvedSub, { shouldDirty: true });
+                                            }}
+                                        />
+                                    )}
+                                />
+                            </Field>
                         </Section>
 
                         <Section title="Pricing & Availability">
@@ -309,7 +310,7 @@ const EditProductPage = () => {
                             </div>
                         </Section>
 
-                         <Section title="Promotional Codes" subtitle="Active Offers">
+                        <Section title="Promotional Codes" subtitle="Active Offers">
                             <div className="flex flex-wrap gap-2.5">
                                 {discount_codes_list.map((dc: any) => {
                                     const isSelected = (watch("discount_codes") || []).includes(dc.id);

@@ -3,7 +3,7 @@ import Header from './shared/widgets/header';
 import Footer from './shared/widgets/footer';
 import { Poppins, Roboto } from 'next/font/google'
 import Providers from './providers';
-
+import { Toaster } from 'react-hot-toast';
 
 
 export const metadata = {
@@ -38,6 +38,7 @@ export default function RootLayout({
           <Header />
           {children}
           <Footer />
+          <Toaster />
         </Providers>
       </body>
 

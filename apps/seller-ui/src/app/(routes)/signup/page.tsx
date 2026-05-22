@@ -6,7 +6,8 @@ import { Eye, EyeOff, Check } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import axios, { AxiosError } from 'axios'
 import { countries } from '../../../utils/countries'
-import { shopcategories } from '../../../utils/shopcategories'
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "apps/seller-ui/src/utils/axiosInstance";
 import StripeLogo from 'apps/seller-ui/src/assets/svgs/stripelogo'
 
 // ── Types (from Prisma schema) ──
@@ -33,6 +34,11 @@ type BankData = {
     accountNumber: string
     routingNumber: string
     bankName: string
+}
+
+const fetchCategories = async (): Promise<string[]> => {
+    const res = await axiosInstance.get("/products/api/get-categories");
+    return res.data?.categories ?? [];
 }
 
 
@@ -90,6 +96,12 @@ const SellerSignup = () => {
     const shopForm = useForm<ShopData>()
     const bankForm = useForm<BankData>()
 
+    const { data: categories = [] } = useQuery({
+        queryKey: ["shopCategories"],
+        queryFn: fetchCategories,
+        staleTime: 1000 * 60 * 10,
+    })
+
     const accountPassword = accountForm.watch('password')
 
     // ── Timer ──
@@ -108,7 +120,7 @@ const SellerSignup = () => {
     // ── Step 1: Register seller & send OTP ──
     const signupMutation = useMutation({
         mutationFn: async (data: SellerAccountData) => {
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/seller-registration`, data)
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/auth/api/seller-registration`, data)
             return res.data
         },
         onSuccess: (_, formData) => {
@@ -127,7 +139,7 @@ const SellerSignup = () => {
     const verifyOtpMutation = useMutation({
         mutationFn: async () => {
             if (!sellerData) return
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/verify-seller`, {
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/auth/api/verify-seller`, {
                 ...sellerData,
                 otp: otp.join('')
             })
@@ -147,7 +159,7 @@ const SellerSignup = () => {
     // ── Step 2: Create shop (sellers.shop — name, bio, category, address, opening_hours, website) ──
     const shopMutation = useMutation({
         mutationFn: async (data: ShopData) => {
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/create-shop`, {
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/auth/api/create-shop`, {
                 name: data.shopName,
                 bio: data.shopBio,
                 category: data.shopCategory,
@@ -170,7 +182,7 @@ const SellerSignup = () => {
     // ── Step 3: Connect Stripe ──
     const connectStripe = async () => {
         try {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/connect-stripe`, {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/auth/api/connect-stripe`, {
                 sellerId
             })
             if (response.data.url) {
@@ -483,7 +495,7 @@ const SellerSignup = () => {
                                 <select {...shopForm.register('shopCategory', { required: 'Category is required' })}
                                     className={`${inputBase} ${shopForm.formState.errors.shopCategory ? inputError : inputNormal}`}>
                                     <option value="" disabled>Select a category</option>
-                                    {shopcategories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                    {categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
                                 </select>
                                 {shopForm.formState.errors.shopCategory && <ErrorMsg message={shopForm.formState.errors.shopCategory.message!} />}
                             </div>

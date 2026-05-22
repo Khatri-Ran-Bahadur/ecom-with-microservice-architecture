@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "jsx": "preserve",
     "noEmit": true,
     "emitDeclarationOnly": false,
@@ -20,10 +21,16 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@packages/*": [
+        "../../packages/*"
+      ],
+      "apps/user-ui/src/*": [
+        "./src/*"
       ]
     },
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "../../",
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
   "include": [
@@ -31,6 +38,9 @@
     "src/**/*.tsx",
     "src/**/*.js",
     "src/**/*.jsx",
+    "../../packages/components/ConfirmModal.tsx",
+    "../../packages/libs/countries.tsx",
+    "../../packages/libs/kafka/index.ts",
     "../../apps/user-ui/.next/types/**/*.ts",
     "../../dist/apps/user-ui/.next/types/**/*.ts",
     "next-env.d.ts"

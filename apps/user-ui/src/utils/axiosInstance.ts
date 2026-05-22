@@ -1,16 +1,21 @@
 import axios from "axios";
+import { runRedirectToLogin } from "./redirect";
 
 const axiosInstance = axios.create({
     baseURL: process.env.NEXT_PUBLIC_SERVER_URL,
-    withCredentials: true
+    withCredentials: true,
+    timeout: 10000
 });
 
 let isRefreshing = false;
 let refreshSubscribers: (() => void)[] = [];
 
 const handleLogout = () => {
-    if (window.location.pathname !== "/login") {
-        window.location.href = "/login"
+    const publicPaths = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/'];
+    const currentPath = window.location.pathname;
+
+    if (!publicPaths.includes(currentPath)) {
+        runRedirectToLogin();
     }
 }
 
@@ -37,13 +42,22 @@ axiosInstance.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        //prevent infinite retry loop
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // If we're on the server, just reject the error
+        if (typeof window === "undefined") {
+            return Promise.reject(error);
+        }
+
+
+        const is401 = error?.response?.status === 401
+        const isRetry = !originalRequest?._retry
+        const isAuthRequired = originalRequest?.requireAuth === true;
+
+        if (is401 && !isRetry && isAuthRequired) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     subscribeTokenRefresh(() => {
                         resolve(axiosInstance(originalRequest));
-                    });
+                    })
                 })
             }
             originalRequest._retry = true;
@@ -60,10 +74,16 @@ axiosInstance.interceptors.response.use(
             } catch (error) {
                 isRefreshing = false;
                 refreshSubscribers = [];
-                handleLogout();
+
+                // Only redirect to login if the failed request was NOT a background user check
+                if (!originalRequest.url?.includes('/api/logged-in-user')) {
+                    handleLogout();
+                }
                 return Promise.reject(error);
             }
         }
+
+
         return Promise.reject(error);
     }
 )

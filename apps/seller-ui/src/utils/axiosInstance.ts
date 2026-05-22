@@ -49,7 +49,7 @@ axiosInstance.interceptors.response.use(
             originalRequest._retry = true;
             isRefreshing = true;
             try {
-                await axiosInstance.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/refresh-token`, {},
+                await axiosInstance.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/auth/api/refresh-token`, {},
                     { withCredentials: true })
 
                 isRefreshing = false;

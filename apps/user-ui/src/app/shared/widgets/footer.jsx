@@ -6,7 +6,7 @@ const Footer = () => {
         <footer className="w-full bg-white border-t border-gray-100 mt-10">
 
             {/* Top Newsletter Band */}
-            <div className="bg-[#3BB77E] py-8 px-4">
+            <div className="bg-violet-700 py-8 px-4">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         {/* Mail icon */}

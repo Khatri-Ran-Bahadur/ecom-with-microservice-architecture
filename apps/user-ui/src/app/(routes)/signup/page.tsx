@@ -17,7 +17,6 @@ const Signup = () => {
     const [passwordVisible, setPasswordVisible] = useState<boolean>(false)
     const [confirmVisible, setConfirmVisible] = useState<boolean>(false)
     const [serverError, setServerError] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState<boolean>(false)
 
     const router = useRouter()
     const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>()
@@ -30,30 +29,18 @@ const Signup = () => {
     const [userData, setUserData] = useState<FormData | null>(null)
     const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
-    const startCountdown = () => {
-        setCanResend(false)
-        setTimer(60)
-        const countdown = setInterval(() => {
-            setTimer((prev) => {
-                if (prev <= 1) {
-                    clearInterval(countdown)
-                    setCanResend(true)
-                    return 0
-                }
-                return prev - 1
-            })
-        }, 1000)
-    }
-
     const signupMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/user-registration`, data);
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/auth/api/user-registration`, data);
             return res.data;
         },
-        onError: (error: AxiosError) => {
-            // setServerError(error.response?.data.message);
+        onError: (error: AxiosError<{ message?: string }>) => {
+            const data = error.response?.data;
+            const msg = data?.message ?? error.message ?? "Something went wrong";
+            setServerError(typeof msg === "string" ? msg : "Something went wrong");
         },
         onSuccess: (_, formdData) => {
+            setServerError(null);
             setUserData(formdData)
             setShowOtp(true)
             setTimer(60)
@@ -65,7 +52,7 @@ const Signup = () => {
     const verifyOtpMutation = useMutation({
         mutationFn: async () => {
             if (!userData) return;
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/verify-user`, { ...userData, otp: otp.join("") });
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/auth/api/verify-user`, { ...userData, otp: otp.join("") });
             return response.data;
         },
         onSuccess: () => {

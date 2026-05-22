@@ -1,20 +1,20 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
-import { ChevronRight, AlertCircle, Package, Save, Sparkles, X, Wand2 } from "lucide-react";
+import { ChevronRight, AlertCircle, Package, Save, Sparkles, X } from "lucide-react";
 import ImagePlaceholder from "../../../../shared/components/image-placeholder";
-import Input from "packages/compoenents/input";
-import ColorSelector from "packages/compoenents/color-selector";
-import CustomSpecifications from "packages/compoenents/custom-specifications";
-import CustomProperties from "packages/compoenents/custom-properties";
+import Input from "packages/components/input";
+import ColorSelector from "packages/components/color-selector";
+import CustomSpecifications from "packages/components/custom-specifications";
+import CustomProperties from "packages/components/custom-properties";
 import axiosInstance from "apps/seller-ui/src/utils/axiosInstance";
 import dynamic from "next/dynamic";
-const RichTextEditor = dynamic(() => import("packages/compoenents/rich-text-editor"), { ssr: false });
-import SizeSelector from "packages/compoenents/size-selector";
-import Image from "next/image";
+const RichTextEditor = dynamic(() => import("packages/components/rich-text-editor"), { ssr: false });
+import SizeSelector from "packages/components/size-selector";
+import CategoryCascadeSelector from "../../../../shared/components/CategoryCascadeSelector";
 import { enhancement } from "apps/seller-ui/src/utils/AI.enhancements";
 
 // ─── Section Wrapper ───────────────────────────────────────────────────────────
@@ -27,8 +27,8 @@ const Section = ({
     subtitle?: string;
     children: React.ReactNode;
 }) => (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+    <div className="bg-white rounded-2xl border border-slate-200">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60 rounded-t-2xl">
             <h3 className="font-semibold text-slate-800 text-sm">{title}</h3>
             {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
         </div>
@@ -93,24 +93,21 @@ const Create = () => {
         formState: { errors },
     } = useForm();
 
-    const { data, isLoading, isError } = useQuery({
+    const { data, isLoading, isError, error } = useQuery({
         queryKey: ["categories"],
         queryFn: async () => {
             const res = await axiosInstance.get("/products/api/get-categories");
+            console.log("Fetched categories response:", res.data);
             return res.data;
         },
         staleTime: 5 * 60 * 1000,
         retry: 2,
+        onError: (err) => {
+            console.error("Error fetching categories:", err);
+        },
     });
 
-    const categories = data?.categories || [];
-    const subCategoriesData = data?.subCategories || {};
-    const selectedCategory = watch("category");
 
-    const subcategories = useMemo(
-        () => (selectedCategory ? subCategoriesData[selectedCategory] || [] : []),
-        [selectedCategory, subCategoriesData]
-    );
 
     const { data: discount_codes = [], isLoading: discountLoading } = useQuery({
         queryKey: ["discount-codes"],
@@ -288,10 +285,11 @@ const Create = () => {
                         )}
                         <button
                             type="submit"
-                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-all shadow-md shadow-violet-200"
+                            disabled={createMutation.isPending || pictureUploadingLoader}
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-all shadow-md shadow-violet-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Sparkles size={15} />
-                            Publish
+                            {createMutation.isPending || pictureUploadingLoader ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : <Sparkles size={15} />}
+                            {pictureUploadingLoader ? "Uploading..." : "Publish"}
                         </button>
                     </div>
                 </div>
@@ -411,47 +409,33 @@ const Create = () => {
 
                         {/* Categorization */}
                         <Section title="Categorization">
-                            <div className="grid grid-cols-2 gap-4">
-                                <Field error={errors.category?.message as string}>
-                                    {isLoading ? (
-                                        <p className="text-sm text-slate-500">Loading...</p>
-                                    ) : (
-                                        <Controller
-                                            name="category"
-                                            control={control}
-                                            rules={{ required: "Category is required" }}
-                                            render={({ field }) => (
-                                                <SelectField label="Category *" {...field}>
-                                                    <option value="">Select category</option>
-                                                    {categories.map((item: any) => (
-                                                        <option key={item} value={item}>{item}</option>
-                                                    ))}
-                                                </SelectField>
-                                            )}
-                                        />
-                                    )}
-                                </Field>
-
-                                <Field error={errors.subCategory?.message as string}>
-                                    {isLoading ? (
-                                        <p className="text-sm text-slate-500">Loading...</p>
-                                    ) : (
-                                        <Controller
-                                            name="subCategory"
-                                            control={control}
-                                            rules={{ required: "Sub-category is required" }}
-                                            render={({ field }) => (
-                                                <SelectField label="Sub Category *" {...field}>
-                                                    <option value="">Select sub-category</option>
-                                                    {subcategories.map((item: any) => (
-                                                        <option key={item} value={item}>{item}</option>
-                                                    ))}
-                                                </SelectField>
-                                            )}
-                                        />
-                                    )}
-                                </Field>
-                            </div>
+                            <Field error={errors.categoryId?.message as string}>
+                                {isLoading ? (
+                                    <p className="text-sm text-slate-500">Loading categories...</p>
+                                ) : isError ? (
+                                    <p className="text-sm text-red-600">Failed to load categories.</p>
+                                ) : (data?.tree && data.tree.length > 0 ? (
+                                    <Controller
+                                        name="categoryId"
+                                        control={control}
+                                        rules={{ required: "Category is required" }}
+                                        render={({ field }) => (
+                                            <CategoryCascadeSelector
+                                                value={field.value || null}
+                                                tree={data?.tree || []}
+                                                error={errors.categoryId?.message as string}
+                                                onChange={(id, resolvedCat, resolvedSub) => {
+                                                    field.onChange(id);
+                                                    setValue("category", resolvedCat, { shouldValidate: true });
+                                                    setValue("subCategory", resolvedSub, { shouldValidate: true });
+                                                }}
+                                            />
+                                        )}
+                                    />
+                                ) : (
+                                    <p className="text-sm text-slate-500">No categories available. Please create categories in the admin panel.</p>
+                                ))}
+                            </Field>
                         </Section>
 
                         {/* Pricing & Stock */}
@@ -631,10 +615,11 @@ const Create = () => {
                             )}
                             <button
                                 type="submit"
-                                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-all shadow-md shadow-violet-200"
+                                disabled={createMutation.isPending || pictureUploadingLoader}
+                                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-all shadow-md shadow-violet-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <Sparkles size={15} />
-                                Publish Product
+                                {createMutation.isPending || pictureUploadingLoader ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : <Sparkles size={15} />}
+                                {pictureUploadingLoader ? "Uploading..." : "Publish Product"}
                             </button>
                         </div>
                     </div>

@@ -5,12 +5,15 @@ import { navItems } from '../../configs/constants';
 import Link from 'next/link';
 import ProfileIcon from '../../../assets/svgs/profile-icon';
 import { Heart, ShoppingCart } from 'lucide-react';
-import useUser from 'apps/user-ui/src/hooks/useUser';
+import { useUser } from 'apps/user-ui/src/hooks/useUser';
+import useStore from 'apps/user-ui/src/store';
 
 const HeaderBottom = () => {
     const [show, setShow] = useState(false);
     const [isSticky, setIsSticky] = useState(false);
     const { user, isLoading } = useUser();
+    const wishlist = useStore((state: any) => state.wishlist)
+    const cart = useStore((state: any) => state.cart)
 
     // track scroll position
     useEffect(() => {
@@ -31,7 +34,7 @@ const HeaderBottom = () => {
         <div className={`w-full transition-all duration-300 ${isSticky ? "fixed top-0 left-0 z-[100] bg-white shadow-lg" : "relative"} `}>
             <div className={`w-[80%] relative m-auto flex items-center justify-between ${isSticky ? "pt-3" : "py-0"}`}>
                 {/* All Dropdowns */}
-                <div className={`w-[260px] ${isSticky && '-mb-2'} cursor-pointer flex items-center justify-between px-5 h-[50px] bg-[#3489ff]`} onClick={() => setShow(prev => !prev)}>
+                <div className={`w-[260px] ${isSticky && '-mb-2'} cursor-pointer flex items-center justify-between px-5 h-[50px] bg-violet-600`} onClick={() => setShow(prev => !prev)}>
                     <div className="flex items-center gap-2">
                         <AlignLeft size={22} color="white" />
                         <span className='font-medium text-white'>All Departments</span>
@@ -82,11 +85,11 @@ const HeaderBottom = () => {
                         <div className='flex items-center gap-5'>
                             <Link href="/wishlist" className="relative">
                                 <Heart size={38} color="black" className='font-semibold' />
-                                <span className='absolute top-0 right-0 w-[22px] h-[22px] rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-semibold'>0</span>
+                                <span className='absolute top-0 right-0 w-[22px] h-[22px] rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-semibold'>{wishlist?.length ?? 0}</span>
                             </Link>
                             <Link href="/cart" className="relative">
                                 <ShoppingCart size={38} color="black" />
-                                <span className='absolute top-0 right-0 w-[22px] h-[22px] rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-semibold'>0</span>
+                                <span className='absolute top-0 right-0 w-[22px] h-[22px] rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-semibold'>{cart?.length ?? 0}</span>
                             </Link>
                         </div>
                     </div>)}

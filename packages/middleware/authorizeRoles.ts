@@ -1,5 +1,4 @@
 import { NextFunction, Response } from "express";
-import { isAuthenticated } from "./isAuthenticated";
 import { AuthError } from "@packages/error-handler";
 
 export const isSeller = async (req: any, res: Response, next: NextFunction) => {
@@ -12,6 +11,13 @@ export const isSeller = async (req: any, res: Response, next: NextFunction) => {
 export const isUser = async (req: any, res: Response, next: NextFunction) => {
     if (req.role !== "user") {
         return next(new AuthError("Access denied! You are not a user."))
+    }
+    next();
+}
+
+export const isAdmin = async (req: any, res: Response, next: NextFunction) => {
+    if (req.role !== "admin") {
+        return next(new AuthError("Access denied! You are not an admin."))
     }
     next();
 }

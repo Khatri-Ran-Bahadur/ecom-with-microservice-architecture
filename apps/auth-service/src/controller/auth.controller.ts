@@ -5,6 +5,14 @@ import { AuthError, ValidationError } from "@packages/error-handler";
 import prisma from "@packages/libs/prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import Stripe from "stripe";
+
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+    // Keep in sync with the Stripe types bundled with `stripe` package version in this repo
+    apiVersion: "2026-04-22.dahlia",
+});
+
 
 export const userRegistration = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -16,18 +24,17 @@ export const userRegistration = async (req: Request, res: Response, next: NextFu
         });
 
         if (existingUser) {
-            return next(new ValidationError("User already exists with this email!"));
+            throw new ValidationError("User already exists with this email!");
         }
 
-        await checkOtpRestrictions(email, next);
-        await trackOtpRequests(email, next);
+        await checkOtpRestrictions(email);
+        await trackOtpRequests(email);
         await sendOtp(email, name, "user-activation-mail");
 
         res.status(200).json({
             message: "OTP sent to email. Please verify your account."
         })
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 
@@ -39,10 +46,10 @@ export const verifyUser = async (req: Request, res: Response, next: NextFunction
         const { email, otp, password, name } = req.body;
 
         if (!email || !otp || !password || !name) {
-            return next(new ValidationError("All fields are required"));
+            throw new ValidationError("All fields are required");
         }
 
-        await verifyOtp(email, otp, next);
+        await verifyOtp(email, otp);
         const hashedPassword = await bcrypt.hash(password, 10);
 
         await prisma.users.create({
@@ -58,7 +65,6 @@ export const verifyUser = async (req: Request, res: Response, next: NextFunction
             message: "User created successfully",
         })
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 }
@@ -69,20 +75,20 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return next(new ValidationError("All fields are required"));
+            throw new ValidationError("All fields are required");
         }
 
         const user = await prisma.users.findUnique({
-            where: { email }
+            where: { email }, include: { avatar: true }
         });
 
         if (!user) {
-            return next(new ValidationError("User not found"));
+            throw new ValidationError("User not found");
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return next(new ValidationError("Invalid password"));
+            throw new ValidationError("Invalid password");
         }
 
         res.clearCookie("seller-access-token");
@@ -101,12 +107,11 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             message: "User logged in successfully",
             accessToken,
             user: {
-                id: user.id, name: user.name, email: user.email
+                id: user.id, name: user.name, email: user.email, avatar: user.avatar
             }
         })
 
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 }
@@ -114,33 +119,42 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 //refresj token user
 export const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const refreshToken = req.cookies["refreshToken"] || req.cookies["seller-refresh-token"] || req.headers.authorization?.split(" ")[1];
+        const refreshToken =
+            req.cookies["admin-refresh-token"] ||
+            req.cookies["refreshToken"] ||
+            req.cookies["seller-refresh-token"] ||
+            req.headers.authorization?.split(" ")[1];
 
         if (!refreshToken) {
-            return next(new ValidationError("Unauthorized! No refresh token."));
+            throw new ValidationError("Unauthorized! No refresh token.");
         }
         const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET as string) as { id: string; role: string };
 
         if (!decoded || !decoded.id || !decoded.role) {
-            return next(new ValidationError("Unauthorized! Invalid token."));
+            throw new ValidationError("Unauthorized! Invalid token.");
         }
 
         let account;
         if (decoded.role === "user") {
-            account = await prisma.users.findUnique({ where: { id: decoded.id } });
+            account = await prisma.users.findUnique({ where: { id: decoded.id }, include: { avatar: true } });
             if (!account) {
-                return next(new AuthError("Forbidden! User not found"));
+                throw new AuthError("Forbidden! User not found");
             }
         } else if (decoded.role === "seller") {
             account = await prisma.sellers.findUnique({ where: { id: decoded.id }, include: { shop: true } });
             if (!account) {
-                return next(new AuthError("Forbidden! Seller not found"));
+                throw new AuthError("Forbidden! Seller not found");
+            }
+        } else if (decoded.role === "admin") {
+            account = await prisma.users.findUnique({ where: { id: decoded.id }, include: { avatar: true } });
+            if (!account || account.role !== "Admin") {
+                throw new AuthError("Forbidden! Admin not found");
             }
         }
 
 
         if (!account) {
-            return next(new AuthError("Forbidden! User/Seller not found"));
+            throw new AuthError("Forbidden! User/Seller not found");
         }
         const accessToken = jwt.sign({ id: account.id, role: decoded.role }, process.env.ACCESS_TOKEN_SECRET as string, { expiresIn: "15m" });
 
@@ -158,9 +172,15 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
                 message: `${decoded.role} refreshed token successfully`,
                 accessToken
             })
+        } else if (decoded.role === "admin") {
+            setTokenCookie(res, "admin-access-token", accessToken);
+            res.status(200).json({
+                success: true,
+                message: `${decoded.role} refreshed token successfully`,
+                accessToken
+            })
         }
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 }
@@ -188,13 +208,56 @@ export const verifyForgotPasswordOtp = async (req: Request, res: Response, next:
     await verifyForgotPasswordOtpHelper(req, res, next);
 }
 
+// upload user avatar
+// update user avatar
+export const updateAvatar = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { avatar } = req.body;
+
+        if (!avatar || !avatar.file_id || !avatar.url) {
+            throw new ValidationError("Avatar data (file_id and url) is required");
+        }
+
+        const updatedUser = await prisma.users.update({
+            where: { id: userId },
+            data: {
+                avatar: {
+                    upsert: {
+                        create: {
+                            file_id: avatar.file_id,
+                            url: avatar.url
+                        },
+                        update: {
+                            file_id: avatar.file_id,
+                            url: avatar.url
+                        }
+                    }
+                }
+            },
+            include: {
+                avatar: true
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Avatar updated successfully",
+            user: updatedUser
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+
 //Reset User Password
 export const resetUserPassword = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, newPassword } = req.body;
 
         if (!email || !newPassword) {
-            return next(new ValidationError("Email and new password are required"));
+            throw new ValidationError("Email and new password are required");
         }
 
         const user = await prisma.users.findUnique({
@@ -202,12 +265,12 @@ export const resetUserPassword = async (req: Request, res: Response, next: NextF
         });
 
         if (!user) {
-            return next(new ValidationError("User not found"));
+            throw new ValidationError("User not found");
         }
         //compare new password with old password if same then return error
         const isSamePassword = await bcrypt.compare(newPassword, user.password);
         if (isSamePassword) {
-            return next(new ValidationError("New password cannot be the same as the old password!"));
+            throw new ValidationError("New password cannot be the same as the old password!");
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -224,7 +287,6 @@ export const resetUserPassword = async (req: Request, res: Response, next: NextF
             message: "Password reset successfully",
         })
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 }
@@ -243,15 +305,14 @@ export const registerSeller = async (req: Request, res: Response, next: NextFunc
             throw new ValidationError("Seller already exists with this email!");
         }
 
-        await checkOtpRestrictions(email, next);
-        await trackOtpRequests(email, next);
+        await checkOtpRestrictions(email);
+        await trackOtpRequests(email);
         await sendOtp(email, name, "seller-activation");
 
         res.status(200).json({
             message: "OTP sent to email. Please verify your account."
         })
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 }
@@ -262,7 +323,7 @@ export const verifySeller = async (req: Request, res: Response, next: NextFuncti
         const { email, otp, password, name, phone_number, country } = req.body;
 
         if (!email || !otp || !password || !name || !phone_number || !country) {
-            return next(new ValidationError("All fields are required"));
+            throw new ValidationError("All fields are required");
         }
 
         const existingSeller = await prisma.sellers.findUnique({
@@ -270,10 +331,10 @@ export const verifySeller = async (req: Request, res: Response, next: NextFuncti
         });
 
         if (existingSeller) {
-            return next(new ValidationError("Seller already exists with this email!"));
+            throw new ValidationError("Seller already exists with this email!");
         }
 
-        await verifyOtp(email, otp, next);
+        await verifyOtp(email, otp);
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const seller = await prisma.sellers.create({
@@ -292,7 +353,6 @@ export const verifySeller = async (req: Request, res: Response, next: NextFuncti
             seller
         })
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 }
@@ -303,7 +363,7 @@ export const createShop = async (req: any, res: Response, next: NextFunction) =>
         const { name, bio, address, opening_hours, website, category, sellerId } = req.body;
 
         if (!name || !bio || !address || !opening_hours || !website || !category || !sellerId) {
-            return next(new ValidationError("All fields are required"));
+            throw new ValidationError("All fields are required");
         }
 
         const shopData: any = {
@@ -329,7 +389,6 @@ export const createShop = async (req: any, res: Response, next: NextFunction) =>
             message: "Shop created successfully",
         })
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 }
@@ -340,7 +399,7 @@ export const createStripeAccountLink = async (req: Request, res: Response, next:
         const { sellerId } = req.body;
 
         if (!sellerId) {
-            return next(new ValidationError("Seller ID is required"));
+            throw new ValidationError("Seller ID is required");
         }
 
         const seller = await prisma.sellers.findUnique({
@@ -348,7 +407,7 @@ export const createStripeAccountLink = async (req: Request, res: Response, next:
         });
 
         if (!seller) {
-            return next(new ValidationError("Seller not found"));
+            throw new ValidationError("Seller not found");
         }
 
         // TODO: Implement stripeService.createAccountLink
@@ -385,7 +444,6 @@ export const createStripeAccountLink = async (req: Request, res: Response, next:
             url: accountLink.url
         })
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 }
@@ -396,7 +454,7 @@ export const loginSeller = async (req: any, res: Response, next: NextFunction) =
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return next(new ValidationError("All fields are required"));
+            throw new ValidationError("All fields are required");
         }
 
         const seller = await prisma.sellers.findUnique({
@@ -404,12 +462,12 @@ export const loginSeller = async (req: any, res: Response, next: NextFunction) =
         });
 
         if (!seller) {
-            return next(new ValidationError("Seller not found"));
+            throw new ValidationError("Seller not found");
         }
 
         const isPasswordValid = await bcrypt.compare(password, seller.password);
         if (!isPasswordValid) {
-            return next(new ValidationError("Invalid password"));
+            throw new ValidationError("Invalid password");
         }
 
         res.clearCookie("accessToken");
@@ -428,7 +486,6 @@ export const loginSeller = async (req: any, res: Response, next: NextFunction) =
             accessToken
         })
     } catch (error) {
-        console.log(error);
         return next(error);
     }
 }
@@ -441,6 +498,366 @@ export const getSeller = async (req: any, res: Response, next: NextFunction) => 
         res.status(200).json({
             success: true,
             seller
+        })
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// add shipping address
+export const addUserAddress = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { name, label, street, city, state, zip, country, isDefault } = req.body;
+
+        if (!userId || !name || !label || !street || !city || !state || !zip || !country) {
+            throw new ValidationError("All fields are required");
+        }
+        if (isDefault) {
+            await prisma.address.updateMany({
+                where: { userId, isDefault: true },
+                data: { isDefault: false }
+            })
+        }
+
+        const address = await prisma.address.create({
+            data: {
+                userId,
+                name,
+                label,
+                street,
+                city,
+                state,
+                zip,
+                country,
+                isDefault
+            }
+        })
+
+        res.status(201).json({
+            success: true,
+            message: "Address added successfully",
+            address
+        })
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// get address
+export const getUserAddress = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const address = await prisma.address.findMany({
+            where: { userId },
+            orderBy: { createdAt: "desc" }
+        })
+
+        res.status(200).json({
+            success: true,
+            address
+        })
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// update user address
+export const updateUserAddress = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { id, name, label, street, city, state, zip, country, isDefault } = req.body;
+
+        if (!userId || !id || !name || !label || !street || !city || !state || !zip || !country) {
+            throw new ValidationError("All fields are required");
+        }
+        if (isDefault) {
+            await prisma.address.updateMany({
+                where: { userId, isDefault: true },
+                data: { isDefault: false }
+            })
+        }
+
+        const address = await prisma.address.update({
+            where: { id },
+            data: {
+                userId,
+                name,
+                label,
+                street,
+                city,
+                state,
+                zip,
+                country,
+                isDefault
+            }
+        })
+
+        res.status(200).json({
+            success: true,
+            message: "Address updated successfully",
+            address
+        })
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// delete user address
+export const deleteUserAddress = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { id } = req.body;
+
+        if (!userId || !id) {
+            throw new ValidationError("All fields are required");
+        }
+
+        await prisma.address.delete({
+            where: { id }
+        })
+
+        res.status(200).json({
+            success: true,
+            message: "Address deleted successfully",
+        })
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// set default address
+export const setDefaultAddress = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { id } = req.body;
+
+        if (!userId || !id) {
+            throw new ValidationError("All fields are required");
+        }
+
+        await prisma.address.updateMany({
+            where: { userId, isDefault: true },
+            data: { isDefault: false }
+        })
+
+        await prisma.address.update({
+            where: { id },
+            data: { isDefault: true }
+        })
+
+        res.status(200).json({
+            success: true,
+            message: "Default address set successfully",
+        })
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// get user stats
+export const getUserStats = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+
+        const [orders, reviews, analytics] = await Promise.all([
+            prisma.orders.findMany({
+                where: { userId }
+            }),
+            prisma.shopReviews.count({
+                where: { userId }
+            }),
+            prisma.userAnalytics.findUnique({
+                where: { userId }
+            })
+        ]);
+
+        const totalOrders = orders.length;
+        const totalSpending = orders.reduce((acc, order) => acc + (order.total || 0), 0);
+
+        res.status(200).json({
+            success: true,
+            stats: {
+                totalOrders,
+                totalSpending,
+                totalReviews: reviews,
+                wishlistItems: 0 // Mocked for now, depending on if there is a wishlist model
+            }
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// update password
+export const updatePassword = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            throw new ValidationError("Current and new passwords are required");
+        }
+
+        const user = await prisma.users.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            throw new ValidationError("User not found");
+        }
+
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isPasswordValid) {
+            throw new ValidationError("Invalid current password");
+        }
+
+        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        if (isSamePassword) {
+            throw new ValidationError("New password cannot be the same as the old password!");
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await prisma.users.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Password updated successfully"
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// get user notifications
+export const getUserNotifications = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+
+        const notifications = await prisma.notifications.findMany({
+            where: { receiverId: userId },
+            orderBy: { createdAt: "desc" }
+        });
+
+        res.status(200).json({
+            success: true,
+            notifications
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// get user reviews
+export const getUserReviews = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+
+        const reviews = await prisma.shopReviews.findMany({
+            where: { userId },
+            include: {
+                shop: true
+            },
+            orderBy: { createdAt: "desc" }
+        });
+
+        res.status(200).json({
+            success: true,
+            reviews
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// update user profile
+export const updateProfile = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { name } = req.body;
+
+        const updatedUser = await prisma.users.update({
+            where: { id: userId },
+            data: {
+                name
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            user: updatedUser
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+
+export const loginAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            throw new ValidationError("All fields are required");
+        }
+
+        const admin = await prisma.users.findUnique({
+            where: { email },
+            include: { avatar: true },
+        });
+
+        if (!admin || admin.role !== "Admin") {
+            throw new ValidationError("Admin not found");
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, admin.password);
+        if (!isPasswordValid) {
+            throw new ValidationError("Invalid password");
+        }
+
+        // clear any other session cookies
+        res.clearCookie("accessToken");
+        res.clearCookie("refreshToken");
+        res.clearCookie("seller-access-token");
+        res.clearCookie("seller-refresh-token");
+        res.clearCookie("admin-access-token");
+        res.clearCookie("admin-refresh-token");
+
+
+        const accessToken = jwt.sign({ id: admin.id, role: "admin" }, process.env.ACCESS_TOKEN_SECRET as string, { expiresIn: "15m" });
+        const refreshToken = jwt.sign({ id: admin.id, role: "admin" }, process.env.REFRESH_TOKEN_SECRET as string, { expiresIn: "7d" });
+
+        // Use dedicated admin cookie names so middleware can reliably select the right principal
+        setTokenCookie(res, "admin-access-token", accessToken);
+        setTokenCookie(res, "admin-refresh-token", refreshToken);
+
+        res.status(200).json({
+            success: true,
+            message: "Admin logged in successfully",
+            accessToken,
+            admin: {
+                id: admin.id,
+                name: admin.name,
+                email: admin.email,
+                avatar: admin.avatar
+            }
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// get single admin
+export const getAdmin = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const admin = req.admin;
+        res.status(200).json({
+            success: true,
+            admin
         })
     } catch (error) {
         return next(error);
