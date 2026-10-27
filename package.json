@@ -22,6 +22,7 @@
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "d3-geo": "^3.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
     "ejs": "^5.0.2",
@@ -51,6 +52,7 @@
     "stripe": "^22.1.0",
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1",
+    "topojson-client": "^3.1.0",
     "tsconfig-paths": "^4.2.0",
     "ua-parser-js": "^2.0.9",
     "zustand": "^5.0.12"
